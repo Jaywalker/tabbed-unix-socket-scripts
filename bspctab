@@ -1,0 +1,83 @@
+#!/usr/bin/env sh
+# Arch Requirements: bspwm (bspc), (tabc), xorg-xprop
+
+#This script works with tabc to close either a tabset or a window
+
+# Get class of a wid
+function get_class {
+	id="$1"
+	xprop -id "$id" | sed -n '/WM_CLASS/s/.*, "\(.*\)"/\1/p'
+}
+
+focused="$(printf "%d" "$(bspc query -N -n focused)")"
+focused_class="$(get_class "$focused")"
+if [ "$focused_class" == "tabbed" ]; then
+	if [ "$1" == "inorout" ]; then
+		winid="$(tabc list "$focused" | head -n1)"
+		bspc node -p "$2"
+		tabc remove "$focused" "$winid"
+	elif [ "$1" == "remove" ]; then
+		winid="$(tabc list "$focused" | head -n1)"
+		tabc remove "$focused" "$winid"
+	elif [ "$2" == "-f" ]; then
+		if [ "$3" == "west" ]; then
+			if [ "$(tabc isfirst "$focused")" == "1" ]; then
+				bspc "$1" "$2" "$3"
+			else
+				tabc tabprev "$focused"
+			fi
+		elif [ "$3" == "east" ]; then
+			if [ "$(tabc islast "$focused")" == "1" ]; then
+				bspc "$1" "$2" "$3"
+			else
+				tabc tabnext "$focused"
+			fi
+		else
+			bspc "$1" "$2" "$3"
+		fi
+	elif [ "$2" == "-s" ]; then
+		if [ "$3" == "west" ]; then
+			if [ "$(tabc isfirst "$focused")" == "1" ]; then
+				winid="$(tabc list "$focused" | head -n1)"
+				bspc node -p west
+				tabc remove "$focused" "$winid"
+			else
+				tabc movetabprev "$focused"
+			fi
+		elif [ "$3" == "east" ]; then
+			if [ "$(tabc islast "$focused")" == "1" ]; then
+				winid="$(tabc list "$focused" | head -n1)"
+				bspc node -p east
+				tabc remove "$focused" "$winid"
+			else
+				tabc movetabnext "$focused"
+			fi
+ 		elif [ "$3" == "north" ]; then
+			winid="$(tabc list "$focused" | head -n1)"
+			bspc node -p north
+			tabc remove "$focused" "$winid"
+ 		elif [ "$3" == "south" ]; then
+			winid="$(tabc list "$focused" | head -n1)"
+			bspc node -p south
+			tabc remove "$focused" "$winid"
+		fi
+	elif [ "$2" == "-c" ] || [ "$2" == "-k" ]; then
+		winid="$(tabc list "$focused" | head -n1)"
+		tabc remove "$focused" "$winid"
+		sleep 0.1
+		bspc "$1" "$winid" "$2" 
+	fi
+else
+	if [ "$1" == "inorout" ]; then
+		tabc add "$2" "$focused"
+		sleep 0.1
+		tabbed_id="$(printf "%d" $(bspc query -N -n focused))"
+		if [ "$2" == "west" ] || [ "$2" == "north" ]; then
+			tabc movetabtolast "$tabbed_id"
+		fi
+	elif [ "$2" == "-f" ] || [ "$2" == "-s" ]; then
+		bspc "$1" "$2" "$3"
+	elif [ "$2" == "-c" ] || [ "$2" == "-k" ]; then
+		bspc "$1" "$2"
+	fi
+fi

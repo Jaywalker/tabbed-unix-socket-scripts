@@ -1,0 +1,134 @@
+#!/bin/sh
+# Arch Requirements: bspwm (bspc), (tabbed), xorg-xprop, xorg-xwininfo, xdotool, openbsd-netcat
+
+# This version for use with UNIX Socket patch: https://github.com/Jaywalker/tabbed/unix-socket-scripts
+# Updated version: https://gist.github.com/BrodieRobertson/dd7e3d793a501066c50086ed795c0357
+# OC: https://www.reddit.com/r/bspwm/comments/etfm3m/for_those_who_like_tabs/
+
+
+#
+# Functions
+#
+
+# Get wid of root window
+function get_root_wid {
+	xwininfo -root | awk '/Window id:/{print $4}'
+}
+
+# Get children of tabbed
+function get_clients {
+	id="$1"
+	xwininfo -id "$id" -children | sed -n '/[0-9]\+ \(child\|children\):/,$s/ \+\(0x[0-9a-z]\+\).*/\1/p'
+}
+
+# Get class of a wid
+function get_class {
+	id="$1"
+	xprop -id "$id" | sed -n '/WM_CLASS/s/.*, "\(.*\)"/\1/p'
+}
+
+#
+# Main Program
+#
+cmd="$1"
+
+if [ "$cmd" == "add" ]; then
+  	tabbedid="$(bspc query -N -n "$2")"
+	focused_class="$(get_class "$tabbedid")"
+	if [ -z "$focused_class" ]; then
+		# Nothing is there.. don't let them create tabs with only one entry
+		exit
+	fi
+	if [ "$focused_class" != "tabbed" ]; then
+		otherwin="$tabbedid"
+		tabbed -c &
+		sleep 0.1 # TODO: Fix this
+		tabbedid="$(xdotool search --class tabbed | tail -n1)"
+		xdotool windowreparent "$otherwin" "$tabbedid"
+	fi
+fi
+
+case "$cmd" in
+	add)
+		wid="$3"
+		xdotool windowreparent "$wid" "$tabbedid"
+		;;
+	remove)
+		tabbedid="$2"
+		wid="$3"
+		root_wid="$(get_root_wid)"
+		xdotool windowreparent "$wid" "$root_wid"
+		remaining="$(tabc list "$tabbedid")"
+		# If there's only one left
+   	 	if [ "$(echo "$remaining" | wc -l )" == "1" ]; then
+			# Also remove this last one
+			xdotool windowreparent "$remaining" "$root_wid"
+    		fi
+		;;
+	list)
+		tabbedid="$2"
+		get_clients "$tabbedid"
+		;;
+	tabnext)
+		tabbedid="$2"
+		printf "%s\0%s\0" "rotate" "1" | nc -U "/tmp/tabbed_$tabbedid-socket"
+		;;
+	tabprev)
+		tabbedid="$2"
+		printf "%s\0%s\0" "rotate" "-1" | nc -U "/tmp/tabbed_$tabbedid-socket"
+		;;
+	movetabnext)
+		tabbedid="$2"
+		printf "%s\0%s\0" "movetab" "1" | nc -U "/tmp/tabbed_$tabbedid-socket"
+		;;
+	movetabprev)
+		tabbedid="$2"
+		printf "%s\0%s\0" "movetab" "-1" | nc -U "/tmp/tabbed_$tabbedid-socket"
+		;;
+	lastfocused)
+		tabbedid="$2"
+		printf "%s\0%s\0" "rotate" "0" | nc -U "/tmp/tabbed_$tabbedid-socket"
+		;;
+	jumpto)
+		tabbedid="$2"
+		printf "%s\0%s\0" "move" "$3" | nc -U "/tmp/tabbed_$tabbedid-socket"
+		;;
+	isfirst)
+		tabbedid="$2"
+		printf "%s\0" "isfirst" | nc -U "/tmp/tabbed_$tabbedid-socket"
+		;;
+	islast)
+		tabbedid="$2"
+		printf "%s\0" "islast" | nc -U "/tmp/tabbed_$tabbedid-socket"
+		;;
+	isempty)
+		tabbedid="$2"
+		printf "%s\0" "isempty" | nc -U "/tmp/tabbed_$tabbedid-socket"
+		;;
+	totaltabs)
+		tabbedid="$2"
+		printf "%s\0" "totaltabs" | nc -U "/tmp/tabbed_$tabbedid-socket"
+		;;
+	tabnumber)
+		tabbedid="$2"
+		printf "%s\0" "tabnumber" | nc -U "/tmp/tabbed_$tabbedid-socket"
+		;;
+	movetabtofirst)
+		tabbedid="$2"
+		printf "%s\0%s\0" "movetab" "0" | nc -U "/tmp/tabbed_$tabbedid-socket"
+		;;
+	movetabtolast)
+		tabbedid="$2"
+		totaltabs="$(tabc totaltabs "$2")"
+		moveto="$(($totaltabs-1))"
+		printf "%s\0%s\0" "movetab" "$moveto" | nc -U "/tmp/tabbed_$tabbedid-socket"
+		;;
+	#killclient) # TODO: This doesn't seem to behave like I expect
+	#	tabbedid="$2"
+	#	printf "%s\0" "killclient" | nc -U "/tmp/tabbed_$tabbedid-socket"
+	#	;;
+	#spawn) # TODO: This hangs for some reason
+	#	tabbedid="$2"
+	#	printf "%s\0" "spawn" | nc -U "/tmp/tabbed_$tabbedid-socket"
+	#	;;
+esac
