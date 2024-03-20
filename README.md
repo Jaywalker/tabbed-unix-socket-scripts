@@ -1,6 +1,6 @@
 # About
 
-This repo contains helper scripts for use with my UNIX Socket Control patch to Suckless's [tabbed](https://tools.suckless.org/tabbed/).
+This repo contains helper scripts for use with my [UNIX Socket Control patch](https://tools.suckless.org/tabbed/patches/unix-socket-control/) to Suckless's [tabbed](https://tools.suckless.org/tabbed/).
 
 When I switched from i3 to bspwm, I really missed the tabbing feature, but I loved the way bspwm used a UNIX socket to control its windows and another tool specifically for binding keys too much to go back to i3. When I discovered tabbed, I was excited at the prospect of having tabs again, but dismayed when I had to use different keys to control tabbed than I did the rest of my windows. Finally, I found the time to write a patch which let tabbed use a UNIX socket for control like bspwm and subsequently wrote these scripts that allow me to maintain use of my standard keys no matter if I was in a tabbed window or not.
 
