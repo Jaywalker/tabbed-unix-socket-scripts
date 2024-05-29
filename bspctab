@@ -69,6 +69,7 @@ if [ "$focused_class" == "tabbed" ]; then
 	fi
 else
 	if [ "$1" == "inorout" ]; then
+                bspc config -n "$2" border_width 0
                 bspc config -n "$focused" border_width 0
 		tabc add "$2" "$focused"
 		sleep 0.1
