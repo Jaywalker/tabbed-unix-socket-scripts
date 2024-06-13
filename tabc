@@ -37,7 +37,7 @@ if [ "$cmd" == "add" ]; then
 	focused_class="$(get_class "$tabbedid")"
 	if [ -z "$focused_class" ]; then
 		# Nothing is there.. don't let them create tabs with only one entry
-		exit
+		exit 1
 	fi
 	if [ "$focused_class" != "tabbed" ]; then
 		otherwin="$tabbedid"
