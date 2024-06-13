@@ -40,6 +40,8 @@ if [ "$cmd" == "add" ]; then
 		exit 1
 	fi
 	if [ "$focused_class" != "tabbed" ]; then
+		bspc config -n "$3" border_width 0
+		bspc config -n "$4" border_width 0
 		otherwin="$tabbedid"
 		tabbed -c &
 		sleep 0.1 # TODO: Fix this

@@ -69,9 +69,7 @@ if [ "$focused_class" == "tabbed" ]; then
 	fi
 else
 	if [ "$1" == "inorout" ]; then
-		tabc add "$2" "$focused" &&
-		bspc config -n "$2" border_width 0 &&
-		bspc config -n "$focused" border_width 0
+		tabc add "$2" "$focused"
 		sleep 0.1
 		tabbed_id="$(printf "%d" $(bspc query -N -n focused))"
 		if [ "$2" == "west" ] || [ "$2" == "north" ]; then
